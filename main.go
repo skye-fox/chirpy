@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"slices"
+	"strings"
 )
 
 func main() {
@@ -45,7 +47,7 @@ func handlerValidateChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type returnVals struct {
-		Valid bool `json:"valid"`
+		Cleaned_body string `json:"cleaned_body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -62,8 +64,10 @@ func handlerValidateChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cleanBody := cleanBody(params.Body)
+
 	respondWithJSON(w, http.StatusOK, returnVals{
-		Valid: true,
+		Cleaned_body: cleanBody,
 	})
 }
 
@@ -89,4 +93,16 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	}
 	w.WriteHeader(code)
 	w.Write(data)
+}
+
+func cleanBody(body string) string {
+	const censored = "****"
+	bannedWords := []string{"kerfuffle", "sharbert", "fornax"}
+	words := strings.Split(body, " ")
+	for i, word := range words {
+		if slices.Contains(bannedWords, strings.ToLower(word)) {
+			words[i] = censored
+		}
+	}
+	return strings.Join(words, " ")
 }
