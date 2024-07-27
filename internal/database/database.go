@@ -14,11 +14,7 @@ type DB struct {
 
 type DBStructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
-}
-
-type Chirp struct {
-	Id   int    `json:"id"`
-	Body string `json:"body"`
+	Users  map[int]User  `json:"users"`
 }
 
 func NewDB(path string) (*DB, error) {
@@ -30,61 +26,12 @@ func NewDB(path string) (*DB, error) {
 	return &newDB, err
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
-	chirpDB, err := db.loadDB()
-	if err != nil {
-		return Chirp{}, err
-	}
-
-	id := len(chirpDB.Chirps) + 1
-
-	newChirp := Chirp{
-		Id:   id,
-		Body: body,
-	}
-	chirpDB.Chirps[newChirp.Id] = newChirp
-
-	err = db.writeDB(chirpDB)
-	if err != nil {
-		return Chirp{}, err
-	}
-
-	return newChirp, nil
-}
-
-func (db *DB) GetChirps() ([]Chirp, error) {
-	chirpDB, err := db.loadDB()
-	if err != nil {
-		return nil, err
-	}
-
-	chirps := make([]Chirp, 0, len(chirpDB.Chirps))
-	for _, chirp := range chirpDB.Chirps {
-		chirps = append(chirps, chirp)
-	}
-
-	return chirps, nil
-}
-
-func (db *DB) GetChirpByID(id int) (Chirp, error) {
-	chirpDB, err := db.loadDB()
-	if err != nil {
-		return Chirp{}, err
-	}
-
-	chirp, ok := chirpDB.Chirps[id]
-	if !ok {
-		return Chirp{}, errors.New("Invalid chirp ID")
-	}
-
-	return chirp, nil
-}
-
 func (db *DB) ensureDB() error {
 	_, err := os.ReadFile(db.path)
 	if errors.Is(err, os.ErrNotExist) {
 		return db.writeDB(DBStructure{
 			Chirps: map[int]Chirp{},
+			Users:  map[int]User{},
 		})
 	}
 	return err
