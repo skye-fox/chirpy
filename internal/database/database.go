@@ -31,20 +31,20 @@ func NewDB(path string) (*DB, error) {
 }
 
 func (db *DB) CreateChirp(body string) (Chirp, error) {
-	database, err := db.loadDB()
+	chirpDB, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
 	}
 
-	id := len(database.Chirps) + 1
+	id := len(chirpDB.Chirps) + 1
 
 	newChirp := Chirp{
 		Id:   id,
 		Body: body,
 	}
-	database.Chirps[newChirp.Id] = newChirp
+	chirpDB.Chirps[newChirp.Id] = newChirp
 
-	err = db.writeDB(database)
+	err = db.writeDB(chirpDB)
 	if err != nil {
 		return Chirp{}, err
 	}
@@ -53,17 +53,31 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 }
 
 func (db *DB) GetChirps() ([]Chirp, error) {
-	database, err := db.loadDB()
+	chirpDB, err := db.loadDB()
 	if err != nil {
 		return nil, err
 	}
 
-	chirps := make([]Chirp, 0, len(database.Chirps))
-	for _, chirp := range database.Chirps {
+	chirps := make([]Chirp, 0, len(chirpDB.Chirps))
+	for _, chirp := range chirpDB.Chirps {
 		chirps = append(chirps, chirp)
 	}
 
 	return chirps, nil
+}
+
+func (db *DB) GetChirpByID(id int) (Chirp, error) {
+	chirpDB, err := db.loadDB()
+	if err != nil {
+		return Chirp{}, err
+	}
+
+	chirp, ok := chirpDB.Chirps[id]
+	if !ok {
+		return Chirp{}, errors.New("Invalid chirp ID")
+	}
+
+	return chirp, nil
 }
 
 func (db *DB) ensureDB() error {
