@@ -4,13 +4,16 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/skye-fox/chirpy/internal/database"
 )
 
 type apiConfig struct {
 	db             database.DB
 	fileserverHits int
+	jwtSecret      string
 }
 
 func main() {
@@ -19,6 +22,12 @@ func main() {
 		port         = "8080"
 		dbPath       = "database.json"
 	)
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("couldn't load environment variables")
+	}
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	chirpDB, err := database.NewDB(dbPath)
 	if err != nil {
@@ -37,6 +46,7 @@ func main() {
 	apiCFG := apiConfig{
 		db:             *chirpDB,
 		fileserverHits: 0,
+		jwtSecret:      jwtSecret,
 	}
 
 	mux := http.NewServeMux()
@@ -48,8 +58,9 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCFG.handlerPostChirps)
 	mux.HandleFunc("GET /api/chirps", apiCFG.handlerGetChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpid}", apiCFG.handlerGetChirpById)
-	mux.HandleFunc("POST /api/users", apiCFG.handlerPostUsers)
 	mux.HandleFunc("POST /api/login", apiCFG.handlerLogin)
+	mux.HandleFunc("POST /api/users", apiCFG.handlerPostUsers)
+	mux.HandleFunc("PUT /api/users", apiCFG.handlerUpdateUsers)
 
 	mux.HandleFunc("GET /admin/metrics", apiCFG.handlerMetrics)
 
