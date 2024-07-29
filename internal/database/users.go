@@ -34,6 +34,29 @@ func (db *DB) CreateUser(email, hashedPassword string) (User, error) {
 	return newUser, nil
 }
 
+func (db *DB) UpdateUsers(id int, email, hashedPassword string) (User, error) {
+	appDB, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+
+	user, ok := appDB.Users[id]
+	if !ok {
+		return User{}, errors.New("User not found")
+	}
+
+	user.HashedPassword = hashedPassword
+	user.Email = email
+	appDB.Users[id] = user
+
+	err = db.writeDB(appDB)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
 func (db *DB) CheckDuplicateEmail(email string) bool {
 	appDB, err := db.loadDB()
 	if err != nil {
