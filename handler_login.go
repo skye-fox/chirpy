@@ -16,9 +16,10 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type response struct {
-		Id    int    `json:"id"`
-		Email string `json:"email"`
-		Token string `json:"token"`
+		Id           int    `json:"id"`
+		Email        string `json:"email"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -41,10 +42,10 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiration := 86400
+	expiration := 3600
 	if params.ExpiresInSeconds == 0 {
 		params.ExpiresInSeconds = expiration
-	} else if params.ExpiresInSeconds > 86400 {
+	} else if params.ExpiresInSeconds > 3600 {
 		params.ExpiresInSeconds = expiration
 	}
 
@@ -54,9 +55,20 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var refreshToken string
+	if user.RefreshToken == "" {
+		refreshToken, err = auth.GenerateRefreshToken()
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't Create refresh token")
+		}
+
+		cfg.db.AddRefreshToken(refreshToken, user.Id)
+	}
+
 	respondWithJSON(w, http.StatusOK, response{
-		Id:    user.Id,
-		Email: user.Email,
-		Token: token,
+		Id:           user.Id,
+		Email:        user.Email,
+		Token:        token,
+		RefreshToken: refreshToken,
 	})
 }
