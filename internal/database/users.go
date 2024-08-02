@@ -9,6 +9,7 @@ type User struct {
 	Id             int    `json:"id"`
 	Email          string `json:"email"`
 	HashedPassword string `json:"hashed_password"`
+	RefreshToken   string `json:"refresh_token"`
 }
 
 func (db *DB) CreateUser(email, hashedPassword string) (User, error) {
@@ -85,4 +86,26 @@ func (db *DB) GetUserByEmail(email string) (User, error) {
 	}
 
 	return User{}, errors.New("User not found")
+}
+
+func (db *DB) AddRefreshToken(refreshToken string, id int) error {
+	appDB, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	user, ok := appDB.Users[id]
+	if !ok {
+		return errors.New("User not found")
+	}
+
+	user.RefreshToken = refreshToken
+	appDB.Users[id] = user
+
+	err = db.writeDB(appDB)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
