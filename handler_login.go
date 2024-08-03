@@ -10,14 +10,12 @@ import (
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email            string `json:"email"`
-		Password         string `json:"password"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	type response struct {
-		Id           int    `json:"id"`
-		Email        string `json:"email"`
+		User
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
 	}
@@ -42,33 +40,28 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiration := 3600
-	if params.ExpiresInSeconds == 0 {
-		params.ExpiresInSeconds = expiration
-	} else if params.ExpiresInSeconds > 3600 {
-		params.ExpiresInSeconds = expiration
-	}
-
-	token, err := auth.MakeJWT(user.Id, cfg.jwtSecret, time.Duration(params.ExpiresInSeconds)*time.Second)
+	accessToken, err := auth.MakeJWT(user.Id, cfg.jwtSecret, time.Hour)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't Create JWT")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create JWT")
 		return
 	}
 
-	var refreshToken string
-	if user.RefreshToken == "" {
-		refreshToken, err = auth.GenerateRefreshToken()
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, "Couldn't Create refresh token")
-		}
+	refreshToken, err := auth.GenerateRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create refresh token")
+	}
 
-		cfg.db.AddRefreshToken(refreshToken, user.Id)
+	err = cfg.db.SaveRefreshToken(refreshToken, user.Id)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't save refresh token")
 	}
 
 	respondWithJSON(w, http.StatusOK, response{
-		Id:           user.Id,
-		Email:        user.Email,
-		Token:        token,
+		User: User{
+			Id:    user.Id,
+			Email: user.Email,
+		},
+		Token:        accessToken,
 		RefreshToken: refreshToken,
 	})
 }
